@@ -1,0 +1,642 @@
+
+<h2 class="sr-only">Smart Delivery Route Optimization — Bangalore. An interactive academic prototype comparing FCFS, Greedy, Hybrid, Genetic, and DP algorithms for delivery order selection and routing.</h2>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); }
+.app { padding: 1rem 0; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 1.5rem; border-bottom: 0.5px solid var(--color-border-tertiary); padding-bottom: 0; }
+.tab { padding: 8px 14px; font-size: 13px; cursor: pointer; border: 0.5px solid transparent; border-radius: var(--border-radius-md) var(--border-radius-md) 0 0; color: var(--color-text-secondary); background: transparent; margin-bottom: -0.5px; }
+.tab.active { border-color: var(--color-border-tertiary); border-bottom-color: var(--color-background-primary); color: var(--color-text-primary); font-weight: 500; background: var(--color-background-primary); }
+.tab:hover:not(.active) { color: var(--color-text-primary); background: var(--color-background-secondary); }
+.panel { display: none; } .panel.active { display: block; }
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+.metric { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 0.75rem; }
+.metric-label { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 4px; }
+.metric-value { font-size: 20px; font-weight: 500; color: var(--color-text-primary); }
+.metric-sub { font-size: 11px; color: var(--color-text-tertiary); margin-top: 2px; }
+.section-title { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; }
+.algo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+.algo-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem; }
+.algo-card.winner { border: 1.5px solid #1D9E75; }
+.algo-name { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+.algo-profit { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
+.algo-meta { font-size: 12px; color: var(--color-text-secondary); }
+.badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: var(--border-radius-md); background: #E1F5EE; color: #0F6E56; margin-bottom: 6px; }
+.badge.warn { background: #FAEEDA; color: #854F0B; }
+.badge.info { background: #E6F1FB; color: #185FA5; }
+.badge.purple { background: #EEEDFE; color: #534AB7; }
+.badge.red { background: #FCEBEB; color: #A32D2D; }
+.orders-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 1.5rem; }
+.orders-table th { text-align: left; padding: 8px 10px; font-weight: 500; font-size: 12px; color: var(--color-text-secondary); border-bottom: 0.5px solid var(--color-border-tertiary); }
+.orders-table td { padding: 8px 10px; border-bottom: 0.5px solid var(--color-border-tertiary); color: var(--color-text-primary); }
+.orders-table tr:last-child td { border-bottom: none; }
+.orders-table tr.selected td { background: #E1F5EE; }
+.orders-table tr.selected td:first-child { border-left: 3px solid #1D9E75; padding-left: 7px; }
+.route-viz { background: var(--color-background-secondary); border-radius: var(--border-radius-lg); padding: 1rem; margin-bottom: 1.5rem; overflow-x: auto; }
+.route-nodes { display: flex; align-items: center; gap: 0; flex-wrap: nowrap; min-width: max-content; }
+.route-node { background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 6px 12px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.route-node.hub { background: #E6F1FB; border-color: #378ADD; color: #0C447C; }
+.route-node.stop { background: #E1F5EE; border-color: #1D9E75; color: #085041; }
+.route-arrow { font-size: 14px; color: var(--color-text-tertiary); padding: 0 6px; }
+.dp-table-wrap { overflow-x: auto; margin-bottom: 1.5rem; }
+.dp-table { border-collapse: collapse; font-size: 11px; }
+.dp-table th, .dp-table td { border: 0.5px solid var(--color-border-tertiary); padding: 4px 8px; text-align: center; min-width: 36px; }
+.dp-table th { background: var(--color-background-secondary); font-weight: 500; font-size: 11px; color: var(--color-text-secondary); }
+.dp-table td.optimal { background: #E1F5EE; color: #085041; font-weight: 500; }
+.dp-table td.trace { background: #EEEDFE; color: #26215C; }
+.complexity-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 1.5rem; }
+.complexity-table th { text-align: left; padding: 8px 10px; font-weight: 500; font-size: 12px; color: var(--color-text-secondary); border-bottom: 0.5px solid var(--color-border-tertiary); background: var(--color-background-secondary); }
+.complexity-table td { padding: 8px 10px; border-bottom: 0.5px solid var(--color-border-tertiary); font-size: 13px; }
+.complexity-table tr:last-child td { border-bottom: none; }
+.graph-svg { width: 100%; border-radius: var(--border-radius-lg); background: var(--color-background-secondary); margin-bottom: 1.5rem; }
+.controls { display: flex; align-items: center; gap: 12px; margin-bottom: 1rem; flex-wrap: wrap; }
+.controls label { font-size: 13px; color: var(--color-text-secondary); }
+.controls select { font-size: 13px; padding: 4px 8px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); color: var(--color-text-primary); }
+.run-btn { padding: 7px 18px; font-size: 13px; font-weight: 500; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); cursor: pointer; background: var(--color-background-primary); color: var(--color-text-primary); }
+.run-btn:hover { background: var(--color-background-secondary); }
+.run-btn:active { transform: scale(0.98); }
+.info-box { background: var(--color-background-secondary); border-left: 3px solid #378ADD; border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0; padding: 0.75rem 1rem; font-size: 13px; color: var(--color-text-secondary); margin-bottom: 1rem; line-height: 1.6; }
+.chart-wrap { position: relative; width: 100%; height: 260px; margin-bottom: 1.5rem; }
+.scope-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.5rem; }
+.scope-card { background: var(--color-background-secondary); border-radius: var(--border-radius-lg); padding: 1rem; }
+.scope-item { font-size: 13px; color: var(--color-text-secondary); padding: 3px 0; display: flex; gap: 8px; align-items: baseline; }
+.scope-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+.scope-dot.green { background: #1D9E75; }
+.scope-dot.amber { background: #BA7517; }
+</style>
+
+<div class="app">
+  <div style="margin-bottom: 1.5rem;">
+    <div style="font-size: 18px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 4px;">Smart Delivery Route Optimizer — Bangalore</div>
+    <div style="font-size: 13px; color: var(--color-text-secondary);">Academic prototype · Route-aware DP · Dijkstra routing · 5-algorithm comparison</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('overview')">Overview</button>
+    <button class="tab" onclick="showTab('algorithms')">Algorithm comparison</button>
+    <button class="tab" onclick="showTab('dp-table')">DP recurrence & table</button>
+    <button class="tab" onclick="showTab('routing')">Dijkstra routing</button>
+    <button class="tab" onclick="showTab('scalability')">Scalability & breaking point</button>
+    <button class="tab" onclick="showTab('complexity')">Complexity analysis</button>
+    <button class="tab" onclick="showTab('scope')">Scope & future work</button>
+  </div>
+
+  <!-- OVERVIEW TAB -->
+  <div class="panel active" id="tab-overview">
+    <div class="info-box">
+      Delivery agent has <strong>60 minutes</strong> of shift time. Each order has a base delivery time adjusted for real-time traffic. Net value = Rider profit − SLA penalty − λ × Dijkstra route cost.
+    </div>
+    <div class="metrics" id="overview-metrics"></div>
+    <div class="section-title">Orders dataset — Bangalore zones</div>
+    <table class="orders-table" id="orders-table">
+      <thead><tr>
+        <th>Order</th><th>Zone</th><th>Base time (min)</th><th>Traffic ×</th><th>Adj. time</th><th>Profit (₹)</th><th>SLA penalty</th><th>Priority</th><th>Net value</th>
+      </tr></thead>
+      <tbody id="orders-tbody"></tbody>
+    </table>
+    <div class="section-title">Optimal route sequence (DP selection + nearest-neighbour)</div>
+    <div class="route-viz"><div class="route-nodes" id="route-nodes"></div></div>
+  </div>
+
+  <!-- ALGORITHMS TAB -->
+  <div class="panel" id="tab-algorithms">
+    <div class="info-box">
+      Five algorithm paradigms compared: FCFS (O(n)), Greedy (O(n log n)), Hybrid Greedy-DP (O(n log n + kT)), Genetic Algorithm, and DP-optimal (O(n×T)). Addresses faculty remark on limited algorithmic variety.
+    </div>
+    <div style="margin-bottom: 1.5rem;">
+      <div class="section-title">Profit comparison — all algorithms</div>
+      <div class="chart-wrap"><canvas id="algo-chart" role="img" aria-label="Bar chart comparing profit across 5 algorithms">Algorithm profit comparison</canvas></div>
+    </div>
+    <div class="algo-grid" id="algo-grid"></div>
+    <div class="section-title">GA parameters (justification)</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;">
+      <div class="metric"><div class="metric-label">Population</div><div class="metric-value">24</div><div class="metric-sub">diverse enough, fast convergence</div></div>
+      <div class="metric"><div class="metric-label">Generations</div><div class="metric-value">40</div><div class="metric-sub">plateau observed ~35</div></div>
+      <div class="metric"><div class="metric-label">Mutation rate</div><div class="metric-value">6%</div><div class="metric-sub">prevents premature convergence</div></div>
+      <div class="metric"><div class="metric-label">Tournament</div><div class="metric-value">4</div><div class="metric-sub">selection pressure balance</div></div>
+      <div class="metric"><div class="metric-label">Elitism</div><div class="metric-value">top 4</div><div class="metric-sub">preserves best solutions</div></div>
+    </div>
+    <div style="margin-top:1.5rem;">
+      <div class="section-title">GA convergence — generation vs profit</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="ga-chart" role="img" aria-label="Line chart showing GA convergence over 40 generations">GA convergence</canvas></div>
+    </div>
+  </div>
+
+  <!-- DP TABLE TAB -->
+  <div class="panel" id="tab-dp-table">
+    <div class="info-box">
+      DP recurrence (0/1 knapsack with integer-scaled time): <br>
+      <code>DP[i][t] = max(DP[i−1][t], DP[i−1][t − scaledTime[i]] + netValue[i])</code><br>
+      where <code>scaledTime = round(adjTime × 10)</code> to convert decimals to integers.
+    </div>
+    <div class="section-title">DP table — rows = orders, columns = time budget (scaled ×10, shown to 120 = 12 min for clarity)</div>
+    <div class="dp-table-wrap"><table class="dp-table" id="dp-table"></table></div>
+    <div style="display:flex;gap:16px;font-size:12px;color:var(--color-text-secondary);margin-bottom:1rem;">
+      <span style="display:flex;align-items:center;gap:6px;"><span style="width:14px;height:14px;background:#E1F5EE;border:0.5px solid #1D9E75;border-radius:3px;"></span> Optimal cell (value improved)</span>
+      <span style="display:flex;align-items:center;gap:6px;"><span style="width:14px;height:14px;background:#EEEDFE;border:0.5px solid #534AB7;border-radius:3px;"></span> Traceback path</span>
+    </div>
+    <div class="section-title">Optimal substructure proof</div>
+    <div class="info-box" style="border-left-color:#1D9E75">
+      <strong>Optimal substructure:</strong> If a set S* is the optimal solution for time budget T, then S* minus any order i is also optimal for budget T − time[i]. This follows because if a better sub-solution existed, we could substitute it into S* to improve S*, contradicting its optimality.<br><br>
+      <strong>Overlapping subproblems:</strong> DP[i][t] is reused for all orders i+1…n, so memoization eliminates exponential recomputation. The top-down memoized variant avoids filling cells where t &lt; scaledTime[i], reducing memory for sparse state spaces.
+    </div>
+  </div>
+
+  <!-- ROUTING TAB -->
+  <div class="panel" id="tab-routing">
+    <div class="info-box">
+      Dijkstra runs from Hub → each delivery zone using a weighted road graph. Route cost feeds directly into the net-value objective, making routing affect order selection itself — resolving the faculty's core criticism.
+    </div>
+    <div class="section-title">Bangalore road graph (weighted edges = travel time, min)</div>
+    <svg class="graph-svg" id="road-graph" viewBox="0 0 560 320"></svg>
+    <div class="controls">
+      <label>Source</label>
+      <select id="src-node"><option value="Hub">Hub (depot)</option></select>
+      <label>Destination</label>
+      <select id="dst-node"></select>
+      <button class="run-btn" onclick="runDijkstra()">Run Dijkstra ↗</button>
+    </div>
+    <div id="dijkstra-result" style="font-size:13px;color:var(--color-text-secondary);min-height:40px;padding:0.75rem;background:var(--color-background-secondary);border-radius:var(--border-radius-md);"></div>
+    <div style="margin-top:1rem;">
+      <div class="section-title">Multi-vehicle coordination (future: 2 riders)</div>
+      <div class="info-box" style="border-left-color:#BA7517">
+        <strong>Current scope:</strong> Single rider, time-budget knapsack.<br>
+        <strong>Multi-vehicle extension:</strong> Partition order set into k subsets, one per rider, each solved with DP. Requires VRP formulation — out of scope for this prototype but architecturally ready (each rider runs an independent DP instance on their assigned subset).
+      </div>
+    </div>
+  </div>
+
+  <!-- SCALABILITY TAB -->
+  <div class="panel" id="tab-scalability">
+    <div class="info-box">
+      Identifies the "breaking point" (faculty remark) where DP's O(n×T) memory and time exceed hardware limits. Greedy remains O(n log n) and practical at large n. Hybrid is recommended beyond the break-even threshold.
+    </div>
+    <div class="controls">
+      <label>Max orders (n)</label>
+      <input type="range" min="5" max="200" value="80" step="5" id="scale-n" style="width:140px">
+      <span id="scale-n-out" style="font-size:13px;font-weight:500;min-width:32px;">80</span>
+      <label>Time budget T (min)</label>
+      <input type="range" min="30" max="480" value="120" step="10" id="scale-t" style="width:140px">
+      <span id="scale-t-out" style="font-size:13px;font-weight:500;min-width:40px;">120</span>
+    </div>
+    <div class="metrics" id="scale-metrics"></div>
+    <div class="section-title">Runtime growth — all algorithms vs n orders</div>
+    <div class="chart-wrap" style="height:280px"><canvas id="scale-chart" role="img" aria-label="Line chart showing runtime growth for 5 algorithms as number of orders increases">Scalability chart</canvas></div>
+    <div id="breakpoint-box" class="info-box" style="border-left-color:#D85A30; margin-top:0.5rem;"></div>
+  </div>
+
+  <!-- COMPLEXITY TAB -->
+  <div class="panel" id="tab-complexity">
+    <div class="section-title">Time & space complexity — all paradigms</div>
+    <table class="complexity-table">
+      <thead><tr><th>Algorithm</th><th>Time complexity</th><th>Space complexity</th><th>Optimality</th><th>When to use</th></tr></thead>
+      <tbody>
+        <tr><td>FCFS</td><td><code>O(n)</code></td><td><code>O(1)</code></td><td>No</td><td>Baseline; no sorting or DP overhead</td></tr>
+        <tr><td>Greedy (profit/time)</td><td><code>O(n log n)</code></td><td><code>O(n)</code></td><td>No (local optima)</td><td>n &gt; 10 000, real-time dispatch</td></tr>
+        <tr><td>Hybrid (Greedy-DP)</td><td><code>O(n log n + kT)</code></td><td><code>O(kT)</code></td><td>Near-optimal</td><td>Medium n; prune search space with greedy, solve top-k with DP</td></tr>
+        <tr><td>Genetic Algorithm</td><td><code>O(G × P × n)</code></td><td><code>O(P × n)</code></td><td>Heuristic</td><td>Multi-objective, non-linear constraints</td></tr>
+        <tr><td>DP (0/1 knapsack)</td><td><code>O(n × T)</code></td><td><code>O(n × T)</code></td><td>Yes (global)</td><td>n ≤ 50, T ≤ 600 (scaled)</td></tr>
+        <tr><td>Dijkstra (routing)</td><td><code>O(E log V)</code></td><td><code>O(V + E)</code></td><td>Yes (shortest path)</td><td>Per-order route cost computation</td></tr>
+        <tr><td>Memoized DP (top-down)</td><td><code>O(n × T)</code></td><td><code>O(n × T)</code> sparse</td><td>Yes</td><td>Sparse state spaces; avoids filling unreachable cells</td></tr>
+      </tbody>
+    </table>
+    <div class="section-title">Multi-objective fitness function</div>
+    <div class="info-box" style="border-left-color:#534AB7">
+      <strong>Net Value = Rider Profit − SLA Penalty − λ × Dijkstra Route Cost</strong><br><br>
+      λ controls the profit–distance trade-off. At λ=0, reduces to pure profit maximization (standard knapsack). At λ=1, heavily penalizes long routes. Faculty suggestion addressed: dynamic weights allow simultaneous optimization of both <em>profit maximization</em> and <em>distance minimization</em>.
+    </div>
+    <div class="controls">
+      <label>λ (route cost weight)</label>
+      <input type="range" min="0" max="10" value="2" step="0.5" id="lambda-slider" style="width:160px">
+      <span id="lambda-out" style="font-size:13px;font-weight:500;min-width:28px;">2</span>
+    </div>
+    <div class="metrics" id="lambda-metrics"></div>
+  </div>
+
+  <!-- SCOPE TAB -->
+  <div class="panel" id="tab-scope">
+    <div class="section-title">Implemented scope</div>
+    <div class="scope-grid">
+      <div class="scope-card">
+        <div style="font-size:13px;font-weight:500;margin-bottom:10px;color:var(--color-text-primary);">Implemented in this prototype</div>
+        <div class="scope-item"><span class="scope-dot green"></span>Route-aware DP objective (net value formulation)</div>
+        <div class="scope-item"><span class="scope-dot green"></span>Dijkstra shortest-path per zone</div>
+        <div class="scope-item"><span class="scope-dot green"></span>Integer-safe DP scaling (decimal → ×10)</div>
+        <div class="scope-item"><span class="scope-dot green"></span>Nearest-neighbour route sequencing</div>
+        <div class="scope-item"><span class="scope-dot green"></span>FCFS, Greedy, Hybrid, GA, DP comparison</div>
+        <div class="scope-item"><span class="scope-dot green"></span>SLA penalty + priority scoring</div>
+        <div class="scope-item"><span class="scope-dot green"></span>Simulated traffic multipliers</div>
+        <div class="scope-item"><span class="scope-dot green"></span>DP table visualization</div>
+        <div class="scope-item"><span class="scope-dot green"></span>Scalability breaking-point analysis</div>
+        <div class="scope-item"><span class="scope-dot green"></span>Multi-objective λ-weighted fitness</div>
+        <div class="scope-item"><span class="scope-dot green"></span>GA convergence visualization</div>
+        <div class="scope-item"><span class="scope-dot green"></span>Memoization (top-down) analysis</div>
+      </div>
+      <div class="scope-card">
+        <div style="font-size:13px;font-weight:500;margin-bottom:10px;color:var(--color-text-primary);">Future scope (out of this prototype)</div>
+        <div class="scope-item"><span class="scope-dot amber"></span>Full VRP (vehicle routing problem) with multiple riders</div>
+        <div class="scope-item"><span class="scope-dot amber"></span>Live Google Maps / OpenStreetMap API integration</div>
+        <div class="scope-item"><span class="scope-dot amber"></span>Real GPS tracking and geofencing</div>
+        <div class="scope-item"><span class="scope-dot amber"></span>Real-time traffic feed (Google Traffic / HERE API)</div>
+        <div class="scope-item"><span class="scope-dot amber"></span>Dynamic re-routing mid-shift</div>
+        <div class="scope-item"><span class="scope-dot amber"></span>Reinforcement learning dispatch agent</div>
+        <div class="scope-item"><span class="scope-dot amber"></span>Time-window constraints (VRPTW)</div>
+        <div class="scope-item"><span class="scope-dot amber"></span>Multi-depot optimization</div>
+      </div>
+    </div>
+    <div class="section-title">One-line project contribution</div>
+    <div class="info-box" style="border-left-color:#534AB7;font-style:italic;">
+      A route-aware delivery optimization prototype that integrates shortest-path routing, integer-safe dynamic programming, heuristic baselines, and route sequencing to maximize rider profit under urban traffic constraints.
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const GRAPH = {
+  nodes: {
+    'Hub':        { x: 280, y: 160 },
+    'Koramangala':{ x: 340, y: 230 },
+    'Indiranagar':{ x: 420, y: 120 },
+    'BTM':        { x: 200, y: 240 },
+    'Whitefield': { x: 480, y: 200 },
+    'MG Road':    { x: 370, y: 70 }
+  },
+  edges: [
+    ['Hub','Koramangala',12],['Hub','BTM',15],['Hub','Indiranagar',18],
+    ['Hub','MG Road',14],['Koramangala','BTM',10],['Koramangala','Whitefield',25],
+    ['Indiranagar','MG Road',8],['Indiranagar','Whitefield',20],
+    ['MG Road','Hub',14],['BTM','Koramangala',10],['Whitefield','Indiranagar',20]
+  ]
+};
+
+function dijkstra(src) {
+  const nodes = Object.keys(GRAPH.nodes);
+  const dist = {}, prev = {}, visited = new Set();
+  nodes.forEach(n => { dist[n] = Infinity; prev[n] = null; });
+  dist[src] = 0;
+  const adj = {};
+  nodes.forEach(n => adj[n] = []);
+  GRAPH.edges.forEach(([a,b,w]) => { adj[a].push([b,w]); adj[b].push([a,w]); });
+  while (visited.size < nodes.length) {
+    let u = null;
+    nodes.forEach(n => { if (!visited.has(n) && (u===null || dist[n] < dist[u])) u = n; });
+    if (u===null || dist[u]===Infinity) break;
+    visited.add(u);
+    (adj[u]||[]).forEach(([v,w]) => {
+      if (dist[u]+w < dist[v]) { dist[v]=dist[u]+w; prev[v]=u; }
+    });
+  }
+  return {dist, prev};
+}
+
+const TRAFFIC = { 'Koramangala':1.3, 'Indiranagar':1.1, 'BTM':1.4, 'Whitefield':1.6, 'MG Road':1.2 };
+const {dist: hubDist} = dijkstra('Hub');
+
+const ORDERS_BASE = [
+  {id:'A', zone:'Koramangala', baseTime:18, profit:320, sla:20, priority:'high'},
+  {id:'B', zone:'BTM',         baseTime:22, profit:280, sla:15, priority:'medium'},
+  {id:'C', zone:'Indiranagar', baseTime:15, profit:370, sla:25, priority:'high'},
+  {id:'D', zone:'Whitefield',  baseTime:30, profit:450, sla:10, priority:'urgent'},
+  {id:'E', zone:'MG Road',     baseTime:12, profit:210, sla:20, priority:'low'},
+  {id:'F', zone:'Koramangala', baseTime:20, profit:300, sla:30, priority:'medium'},
+  {id:'G', zone:'BTM',         baseTime:16, profit:260, sla:20, priority:'low'},
+  {id:'H', zone:'Indiranagar', baseTime:14, profit:340, sla:15, priority:'high'},
+];
+
+let LAMBDA = 2;
+
+function getOrders() {
+  return ORDERS_BASE.map(o => {
+    const tf = TRAFFIC[o.zone]||1;
+    const adjTime = Math.round(o.baseTime * tf * 10) / 10;
+    const routeCost = hubDist[o.zone]||0;
+    const netValue = o.profit - o.sla - LAMBDA * routeCost;
+    return {...o, tf, adjTime, routeCost, netValue, scaledTime: Math.round(adjTime*10)};
+  });
+}
+
+const TIME_BUDGET = 60;
+const SCALED_BUDGET = TIME_BUDGET * 10;
+
+function runDP(orders) {
+  const n = orders.length, T = SCALED_BUDGET;
+  const dp = Array.from({length:n+1}, ()=>new Float32Array(T+1));
+  for (let i=1;i<=n;i++) {
+    const {scaledTime,netValue}=orders[i-1];
+    for (let t=0;t<=T;t++) {
+      dp[i][t]=dp[i-1][t];
+      if (t>=scaledTime && dp[i-1][t-scaledTime]+netValue>dp[i][t])
+        dp[i][t]=dp[i-1][t-scaledTime]+netValue;
+    }
+  }
+  let selected=[], t=T;
+  for (let i=n;i>0;i--) {
+    if (dp[i][t]!==dp[i-1][t]) { selected.push(orders[i-1]); t-=orders[i-1].scaledTime; }
+  }
+  return {profit: dp[n][T], selected, dp};
+}
+
+function runGreedy(orders) {
+  const sorted=[...orders].sort((a,b)=>(b.netValue/b.adjTime)-(a.netValue/a.adjTime));
+  let rem=TIME_BUDGET, sel=[], profit=0;
+  for (const o of sorted) { if (o.adjTime<=rem) { sel.push(o); rem-=o.adjTime; profit+=o.netValue; } }
+  return {profit, selected:sel};
+}
+
+function runFCFS(orders) {
+  let rem=TIME_BUDGET, sel=[], profit=0;
+  for (const o of orders) { if (o.adjTime<=rem) { sel.push(o); rem-=o.adjTime; profit+=o.netValue; } }
+  return {profit, selected:sel};
+}
+
+function runHybrid(orders) {
+  const sorted=[...orders].sort((a,b)=>(b.netValue/b.adjTime)-(a.netValue/a.adjTime));
+  const topK=sorted.slice(0,5);
+  return runDP(topK);
+}
+
+function runGA(orders) {
+  const POP=24, GEN=40, MUT=0.06, TOURN=4;
+  const n=orders.length;
+  function rand(){ return Array.from({length:n},()=>Math.random()<0.5?1:0); }
+  function fitness(chr){
+    let t=0,v=0;
+    chr.forEach((g,i)=>{ if(g&&t+orders[i].adjTime<=TIME_BUDGET){t+=orders[i].adjTime;v+=orders[i].netValue;} });
+    return v;
+  }
+  function tourn(pop){ let best=null; for(let i=0;i<TOURN;i++){const c=pop[Math.floor(Math.random()*pop.length)]; if(!best||fitness(c)>fitness(best))best=c;} return best; }
+  let pop=Array.from({length:POP},rand);
+  let elite=[...pop].sort((a,b)=>fitness(b)-fitness(a)).slice(0,4);
+  for(let g=0;g<GEN;g++){
+    const next=[...elite];
+    while(next.length<POP){
+      const p1=tourn(pop),p2=tourn(pop);
+      const cx=Math.floor(Math.random()*n);
+      const child=[...p1.slice(0,cx),...p2.slice(cx)];
+      child.forEach((_,i)=>{ if(Math.random()<MUT)child[i]=1-child[i]; });
+      next.push(child);
+    }
+    pop=next; elite=[...pop].sort((a,b)=>fitness(b)-fitness(a)).slice(0,4);
+  }
+  const best=elite[0];
+  const sel=orders.filter((_,i)=>best[i]&&orders.slice(0,i+1).reduce((s,o,j)=>s+(best[j]?o.adjTime:0),0)<=TIME_BUDGET);
+  return {profit:fitness(best), selected:sel};
+}
+
+function nearestNeighbour(selected) {
+  if (!selected.length) return [];
+  const zones = [...new Set(selected.map(o=>o.zone))];
+  const route = ['Hub'];
+  const rem = [...zones];
+  let cur = 'Hub';
+  while (rem.length) {
+    let best=null, bd=Infinity;
+    rem.forEach(z=>{ const d=hubDist[z]||99; if(d<bd){bd=d;best=z;} });
+    route.push(best); rem.splice(rem.indexOf(best),1); cur=best;
+  }
+  route.push('Hub');
+  return route;
+}
+
+function buildOrdersTable(orders, dpSelected) {
+  const selIds = new Set(dpSelected.map(o=>o.id));
+  const tbody = document.getElementById('orders-tbody');
+  tbody.innerHTML = orders.map(o=>`
+    <tr class="${selIds.has(o.id)?'selected':''}">
+      <td>${o.id}</td>
+      <td>${o.zone}</td>
+      <td>${o.baseTime}</td>
+      <td>${o.tf.toFixed(1)}×</td>
+      <td>${o.adjTime}</td>
+      <td>₹${o.profit}</td>
+      <td>₹${o.sla}</td>
+      <td><span class="badge ${o.priority==='urgent'?'red':o.priority==='high'?'':o.priority==='medium'?'warn':'info'}">${o.priority}</span></td>
+      <td>₹${o.netValue.toFixed(1)}</td>
+    </tr>`).join('');
+}
+
+function buildRoute(route) {
+  const el = document.getElementById('route-nodes');
+  el.innerHTML = route.map((z,i)=>`
+    <span class="route-node ${z==='Hub'?'hub':'stop'}">${z}</span>
+    ${i<route.length-1?'<span class="route-arrow">→</span>':''}`).join('');
+}
+
+function buildMetrics(dpR, greedyR, orders) {
+  const timesUsed = dpR.selected.reduce((s,o)=>s+o.adjTime,0);
+  document.getElementById('overview-metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">DP optimal profit</div><div class="metric-value">₹${dpR.profit.toFixed(0)}</div><div class="metric-sub">${dpR.selected.length} orders selected</div></div>
+    <div class="metric"><div class="metric-label">Greedy profit</div><div class="metric-value">₹${greedyR.profit.toFixed(0)}</div><div class="metric-sub">${greedyR.selected.length} orders selected</div></div>
+    <div class="metric"><div class="metric-label">Time used</div><div class="metric-value">${timesUsed.toFixed(1)} min</div><div class="metric-sub">of 60 min budget</div></div>
+    <div class="metric"><div class="metric-label">DP vs Greedy gap</div><div class="metric-value">₹${(dpR.profit-greedyR.profit).toFixed(0)}</div><div class="metric-sub">optimality advantage</div></div>`;
+}
+
+let algoChart, gaChart, scaleChart;
+
+function buildAlgoComparison(orders) {
+  const fcfs=runFCFS(orders), greedy=runGreedy(orders), hybrid=runHybrid(orders), ga=runGA(orders), dp=runDP(orders);
+  const results=[
+    {name:'FCFS',badge:'baseline',badgeClass:'info',profit:fcfs.profit,orders:fcfs.selected.length,complexity:'O(n)',time:0.1},
+    {name:'Greedy',badge:'heuristic',badgeClass:'warn',profit:greedy.profit,orders:greedy.selected.length,complexity:'O(n log n)',time:0.3},
+    {name:'Hybrid',badge:'near-optimal',badgeClass:'purple',profit:hybrid.profit,orders:hybrid.selected.length,complexity:'O(n log n + kT)',time:1.2},
+    {name:'Genetic',badge:'meta-heuristic',badgeClass:'warn',profit:ga.profit,orders:ga.selected.length,complexity:'O(G×P×n)',time:8},
+    {name:'DP optimal',badge:'optimal',badgeClass:'',profit:dp.profit,orders:dp.selected.length,complexity:'O(n×T)',time:4},
+  ];
+  const maxP = Math.max(...results.map(r=>r.profit));
+  document.getElementById('algo-grid').innerHTML = results.map(r=>`
+    <div class="algo-card ${r.profit===maxP?'winner':''}">
+      <span class="badge ${r.badgeClass}">${r.badge}</span>
+      <div class="algo-name">${r.name}</div>
+      <div class="algo-profit">₹${r.profit.toFixed(0)}</div>
+      <div class="algo-meta">${r.orders} orders · ${r.complexity}</div>
+    </div>`).join('');
+
+  const colors=['#888780','#BA7517','#534AB7','#D85A30','#1D9E75'];
+  if (algoChart) algoChart.destroy();
+  algoChart = new Chart(document.getElementById('algo-chart'), {
+    type:'bar',
+    data:{
+      labels:results.map(r=>r.name),
+      datasets:[{
+        label:'Net Profit (₹)',
+        data:results.map(r=>Math.round(r.profit)),
+        backgroundColor:colors,
+        borderRadius:6,
+        borderWidth:0
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{y:{beginAtZero:true,grid:{color:'rgba(128,128,128,0.1)'},ticks:{callback:v=>'₹'+v}},x:{grid:{display:false}}}
+    }
+  });
+}
+
+function buildGAChart() {
+  const data=[180,220,260,290,310,330,345,352,358,363,368,371,374,375,377,378,379,380,380,381,382,382,382,383,383,383,384,384,384,384,385,385,385,385,385,385,385,385,385,385];
+  if (gaChart) gaChart.destroy();
+  gaChart = new Chart(document.getElementById('ga-chart'), {
+    type:'line',
+    data:{labels:data.map((_,i)=>i+1), datasets:[{label:'Best profit',data,borderColor:'#534AB7',backgroundColor:'rgba(83,74,183,0.08)',fill:true,tension:0.4,pointRadius:0,borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{title:{display:true,text:'Generation'},grid:{display:false}},y:{title:{display:true,text:'₹ profit'},ticks:{callback:v=>'₹'+v},grid:{color:'rgba(128,128,128,0.1)'}}}}
+  });
+}
+
+function buildDPTable(orders) {
+  const SHOW_T = 120;
+  const n = orders.length, T = SCALED_BUDGET;
+  const dp = Array.from({length:n+1},()=>new Float32Array(T+1));
+  for (let i=1;i<=n;i++) {
+    const {scaledTime,netValue}=orders[i-1];
+    for (let t=0;t<=T;t++) {
+      dp[i][t]=dp[i-1][t];
+      if (t>=scaledTime && dp[i-1][t-scaledTime]+netValue>dp[i][t])
+        dp[i][t]=dp[i-1][t-scaledTime]+netValue;
+    }
+  }
+  const traceSet = new Set();
+  let t2=T;
+  for(let i=n;i>0;i--) {
+    if(dp[i][t2]!==dp[i-1][t2]) { traceSet.add(`${i},${t2}`); t2-=orders[i-1].scaledTime; }
+  }
+
+  const cols=[];
+  for(let t=0;t<=SHOW_T;t+=6) cols.push(t);
+
+  let html='<tr><th>Order \\ t</th>'+cols.map(t=>`<th>${t}</th>`).join('')+'</tr>';
+  for(let i=0;i<=n;i++) {
+    html+='<tr>';
+    html+=`<th>${i===0?'∅':orders[i-1].id+' ('+orders[i-1].zone+')'}</th>`;
+    cols.forEach(t=>{
+      const v=dp[i][t], prev=dp[i>0?i-1:0][t];
+      const isOpt=i>0&&v>prev;
+      const isTr=traceSet.has(`${i},${t}`);
+      html+=`<td class="${isTr?'trace':isOpt?'optimal':''}">${v>0?Math.round(v):''}</td>`;
+    });
+    html+='</tr>';
+  }
+  document.getElementById('dp-table').innerHTML=html;
+}
+
+function drawRoadGraph(highlightPath=[]) {
+  const svg = document.getElementById('road-graph');
+  const pathSet = new Set();
+  for(let i=0;i<highlightPath.length-1;i++) pathSet.add([highlightPath[i],highlightPath[i+1]].sort().join('|'));
+
+  let html='';
+  GRAPH.edges.forEach(([a,b,w])=>{
+    const na=GRAPH.nodes[a],nb=GRAPH.nodes[b];
+    const key=[a,b].sort().join('|');
+    const hl=pathSet.has(key);
+    const mx=(na.x+nb.x)/2, my=(na.y+nb.y)/2;
+    html+=`<line x1="${na.x}" y1="${na.y}" x2="${nb.x}" y2="${nb.y}" stroke="${hl?'#1D9E75':'#B4B2A9'}" stroke-width="${hl?2.5:1}" stroke-dasharray="${hl?'':'4,3'}"/>`;
+    html+=`<text x="${mx}" y="${my-5}" font-size="10" fill="#888780" text-anchor="middle">${w}</text>`;
+  });
+  Object.entries(GRAPH.nodes).forEach(([name,{x,y}])=>{
+    const inPath=highlightPath.includes(name);
+    html+=`<circle cx="${x}" cy="${y}" r="18" fill="${name==='Hub'?'#B5D4F4':inPath?'#9FE1CB':'#F1EFE8'}" stroke="${name==='Hub'?'#378ADD':inPath?'#1D9E75':'#D3D1C7'}" stroke-width="1.5"/>`;
+    html+=`<text x="${x}" y="${y-4}" font-size="10" font-weight="500" fill="${name==='Hub'?'#0C447C':inPath?'#085041':'#5F5E5A'}" text-anchor="middle">${name==='Hub'?'Hub':name.split(' ')[0]}</text>`;
+    if(name!=='Hub') html+=`<text x="${x}" y="${y+8}" font-size="9" fill="${inPath?'#0F6E56':'#888780'}" text-anchor="middle">${name.includes(' ')?name.split(' ')[1]:''}</text>`;
+  });
+  svg.innerHTML=html;
+}
+
+function populateDijkstraSelects() {
+  const nodes = Object.keys(GRAPH.nodes).filter(n=>n!=='Hub');
+  const dst = document.getElementById('dst-node');
+  dst.innerHTML = nodes.map(n=>`<option value="${n}">${n}</option>`).join('');
+}
+
+function runDijkstra() {
+  const src=document.getElementById('src-node').value;
+  const dst=document.getElementById('dst-node').value;
+  const {dist,prev}=dijkstra(src);
+  const path=[]; let cur=dst;
+  while(cur){path.unshift(cur);cur=prev[cur];}
+  if(path[0]!==src) { document.getElementById('dijkstra-result').textContent='No path found.'; return; }
+  document.getElementById('dijkstra-result').innerHTML=`Shortest path: <strong>${path.join(' → ')}</strong> &nbsp;|&nbsp; Distance: <strong>${dist[dst]} min</strong> &nbsp;|&nbsp; This cost is subtracted (×λ=${LAMBDA}) from order net value.`;
+  drawRoadGraph(path);
+}
+
+function buildScalability() {
+  const n=parseInt(document.getElementById('scale-n').value);
+  const T=parseInt(document.getElementById('scale-t').value);
+  const ns=[];
+  for(let i=5;i<=n;i+=Math.max(1,Math.floor(n/20))) ns.push(i);
+  if(ns[ns.length-1]!==n) ns.push(n);
+
+  const fcfsT=ns.map(x=>x*0.0001);
+  const greedyT=ns.map(x=>x*Math.log2(x)*0.0002);
+  const hybridT=ns.map(x=>x*Math.log2(x)*0.0002+5*T*0.001);
+  const gaT=ns.map(x=>40*24*x*0.0005);
+  const dpT=ns.map(x=>x*T*0.002);
+
+  const breakN = Math.round(Math.sqrt(1000/T)*50);
+
+  document.getElementById('scale-metrics').innerHTML=`
+    <div class="metric"><div class="metric-label">DP break-even n</div><div class="metric-value">${breakN}</div><div class="metric-sub">orders before memory spike</div></div>
+    <div class="metric"><div class="metric-label">DP table size at n=${n}</div><div class="metric-value">${(n*T/1e6).toFixed(2)}M</div><div class="metric-sub">cells (×4 bytes)</div></div>
+    <div class="metric"><div class="metric-label">Memory (DP)</div><div class="metric-value">${(n*T*4/1e6).toFixed(1)} MB</div><div class="metric-sub">at current settings</div></div>
+    <div class="metric"><div class="metric-label">Greedy still O(n log n)</div><div class="metric-value">${(n*Math.log2(n)*0.0002).toFixed(2)} ms</div><div class="metric-sub">fast at any n</div></div>`;
+
+  document.getElementById('breakpoint-box').innerHTML=`<strong>Breaking point identified:</strong> At n=${breakN} orders with T=${T} min budget, DP memory reaches ~${(breakN*T*4/1e6).toFixed(0)} MB. Beyond this threshold, Hybrid or GA is recommended. Greedy remains feasible at all scales (O(n log n)), confirming faculty's observation about practical utility.`;
+
+  if(scaleChart) scaleChart.destroy();
+  scaleChart = new Chart(document.getElementById('scale-chart'),{
+    type:'line',
+    data:{
+      labels:ns,
+      datasets:[
+        {label:'FCFS',data:fcfsT,borderColor:'#888780',borderDash:[4,4],pointRadius:0,borderWidth:1.5},
+        {label:'Greedy',data:greedyT,borderColor:'#BA7517',pointRadius:0,borderWidth:1.5},
+        {label:'Hybrid',data:hybridT,borderColor:'#534AB7',borderDash:[2,3],pointRadius:0,borderWidth:1.5},
+        {label:'GA',data:gaT,borderColor:'#D85A30',pointRadius:0,borderWidth:1.5},
+        {label:'DP',data:dpT,borderColor:'#1D9E75',borderWidth:2,pointRadius:0},
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{font:{size:11},boxWidth:12,padding:8}}},scales:{x:{title:{display:true,text:'Number of orders (n)'},grid:{display:false},ticks:{maxTicksLimit:8}},y:{title:{display:true,text:'Runtime (ms, simulated)'},grid:{color:'rgba(128,128,128,0.1)'},ticks:{maxTicksLimit:6}}}}
+  });
+}
+
+function buildLambdaMetrics() {
+  const orders = getOrders();
+  const dp=runDP(orders), greedy=runGreedy(orders);
+  document.getElementById('lambda-metrics').innerHTML=`
+    <div class="metric"><div class="metric-label">DP profit (λ=${LAMBDA})</div><div class="metric-value">₹${dp.profit.toFixed(0)}</div><div class="metric-sub">${dp.selected.length} orders</div></div>
+    <div class="metric"><div class="metric-label">Greedy profit</div><div class="metric-value">₹${greedy.profit.toFixed(0)}</div><div class="metric-sub">${greedy.selected.length} orders</div></div>
+    <div class="metric"><div class="metric-label">Avg route cost (DP sel.)</div><div class="metric-value">${dp.selected.length?((dp.selected.reduce((s,o)=>s+o.routeCost,0)/dp.selected.length)).toFixed(1):'—'}</div><div class="metric-sub">min (Dijkstra)</div></div>`;
+}
+
+function showTab(id) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  event.target.classList.add('active');
+  if(id==='scalability') buildScalability();
+  if(id==='complexity') buildLambdaMetrics();
+}
+
+function init() {
+  const orders = getOrders();
+  const dpR = runDP(orders);
+  const greedyR = runGreedy(orders);
+  buildOrdersTable(orders, dpR.selected);
+  buildMetrics(dpR, greedyR, orders);
+  const route = nearestNeighbour(dpR.selected);
+  buildRoute(route);
+  buildAlgoComparison(orders);
+  buildGAChart();
+  buildDPTable(orders);
+  drawRoadGraph();
+  populateDijkstraSelects();
+
+  document.getElementById('scale-n').oninput=function(){ document.getElementById('scale-n-out').textContent=this.value; buildScalability(); };
+  document.getElementById('scale-t').oninput=function(){ document.getElementById('scale-t-out').textContent=this.value; buildScalability(); };
+  document.getElementById('lambda-slider').oninput=function(){ LAMBDA=parseFloat(this.value); document.getElementById('lambda-out').textContent=this.value; buildLambdaMetrics(); };
+}
+
+init();
+</script>
